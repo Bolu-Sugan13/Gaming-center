@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brain Twist</title>
+<style>
+  :root{
+    --bg:#faf9fc;
+    --card:#ffffff;
+    --ink:#22223b;
+    --muted:#6b6b83;
+    --accent:#ff6b5b;
+    --accent-dark:#e5503f;
+    --good:#06d6a0;
+    --bad:#ef476f;
+    --line:#ece9f2;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--bg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .app{
+    width:100%;
+    max-width:460px;
+  }
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+  }
+  header h1{
+    font-size:22px;
+    margin:0;
+    letter-spacing:-0.02em;
+  }
+  header h1 span{color:var(--accent);}
+  #levelIndicator{
+    font-size:13px;
+    color:var(--muted);
+    background:var(--line);
+    padding:4px 10px;
+    border-radius:20px;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:28px 22px;
+    min-height:280px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:16px;
+    position:relative;
+    overflow:hidden;
+  }
+  .card.shake{animation:shake .4s;}
+  @keyframes shake{
+    10%,90%{transform:translateX(-2px);}
+    20%,80%{transform:translateX(4px);}
+    30%,50%,70%{transform:translateX(-8px);}
+    40%,60%{transform:translateX(8px);}
+  }
+  .question{
+    font-size:18px;
+    font-weight:600;
+    line-height:1.4;
+    text-align:center;
+  }
+  .subtext{
+    font-size:13px;
+    color:var(--muted);
+    text-align:center;
+    margin-top:-8px;
+  }
+  .options{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .opt-btn{
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:15px;
+    text-align:left;
+    cursor:pointer;
+    transition:transform .1s ease, border-color .15s ease;
+  }
+  .opt-btn:hover{border-color:var(--accent);}
+  .opt-btn:active{transform:scale(0.98);}
+  .row-wrap{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:center;
+  }
+  .chip{
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 16px;
+    font-size:22px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .chip.used{opacity:0.35; pointer-events:none;}
+  .chip.rot{transform:scaleX(-1);}
+  .seq{
+    display:flex;
+    gap:8px;
+    justify-content:center;
+    min-height:24px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  input[type="text"]{
+    padding:12px 14px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    font-size:15px;
+    outline:none;
+  }
+  input[type="text"]:focus{border-color:var(--accent);}
+  .primary-btn{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:12px 16px;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .primary-btn:active{background:var(--accent-dark);}
+  .scene{
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+    font-size:52px;
+  }
+  .scene span{cursor:pointer; transition:transform .15s;}
+  .scene span:hover{transform:scale(1.1);}
+  .bulbs{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:14px;
+    justify-items:center;
+  }
+  .bulb{font-size:40px; cursor:pointer;}
+  #feedback{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:17px;
+    font-weight:700;
+    background:rgba(255,255,255,0.94);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease;
+  }
+  #feedback.show{opacity:1; pointer-events:all;}
+  #feedback.good{color:var(--good);}
+  #feedback.bad{color:var(--bad);}
+  .controls{
+    display:flex;
+    justify-content:space-between;
+    margin-top:14px;
+  }
+  .link-btn{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:13px;
+    cursor:pointer;
+    text-decoration:underline;
+  }
+  #hintBox{
+    font-size:13px;
+    color:var(--accent-dark);
+    text-align:center;
+    min-height:16px;
+  }
+  .done-emoji{font-size:48px; text-align:center;}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>Brain <span>Twist</span></h1>
+    <span id="levelIndicator"></span>
+  </header>
+
+  <div class="card" id="card">
+    <div id="puzzleArea"></div>
+    <div id="hintBox"></div>
+    <div id="feedback"></div>
+  </div>
+
+  <div class="controls">
+    <button class="link-btn" id="hintBtn">💡 Hint</button>
+    <button class="link-btn" id="resetBtn">Restart game</button>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = "brainTwistLevel";
+
+const levels = [
+  // 1 — read carefully
+  {
+    hint: "Look at the numbers, not just the material.",
+    render(area, done){
+      area.innerHTML = `
+        <div class="question">Which is heavier?</div>
+        <div class="options" id="opts"></div>`;
+      const options = ["1 kg of feathers", "2 kg of steel", "They weigh exactly the same"];
+      const opts = area.querySelector("#opts");
+      options.forEach((text, i) => {
+        const b = document.createElement("button");
+        b.className = "opt-btn";
+        b.textContent = text;
+        b.onclick = () => done(i === 1);
+        opts.appendChild(b);
+      });
+    }
+  },
+  // 2 — order smallest to largest
+  {
+    hint: "Tap them in order, smallest first.",
+    render(area, done){
+      area.innerHTML = `
+        <div class="question">Tap the animals from smallest to largest</div>
+        <div class="row-wrap" id="row"></div>
+        <div class="seq" id="seq"></div>`;
+      const animals = [
+        { e: "🐘", size: 3 },
+        { e: "🐭", size: 1 },
+        { e: "🐕", size: 2 }
+      ];
+      const order = [];
+      const row = area.querySelector("#row");
+      const seq = area.querySelector("#seq");
+      animals.forEach((a, i) => {
+        const chip = document.createElement("div");
+        chip.className = "chip";
+        chip.textContent = a.e;
+        chip.onclick = () => {
+          if (chip.classList.contains("used")) return;
+          chip.classList.add("used");
+          order.push(a.size);
+          seq.textContent = order.join(" → ");
+          if (order.length === animals.length){
+            const correct = order.every((v, idx) => idx === 0 || v > order[idx-1]);
+            setTimeout(() => done(correct), 200);
+          }
+        };
+        row.appendChild(chip);
+      });
+    }
+  },
+  // 3 — count circles
+  {
+    hint: "Count carefully — some overlap.",
+    render(area, done){
+      area.innerHTML = `
+        <div class="question">How many circles are in this picture?</div>
+        <svg viewBox="0 0 200 100" width="100%" height="100" style="display:block;margin:0 auto;">
+          <circle cx="60" cy="50" r="30" fill="none" stroke="#ff6b5b" stroke-width="3"/>
+          <circle cx="90" cy="50" r="30" fill="none" stroke="#06d6a0" stroke-width="3"/>
+          <circle cx="120" cy="50" r="30" fill="none" stroke="#22223b" stroke-width="3"/>
+          <circle cx="150" cy="35" r="14" fill="none" stroke="#e5503f" stroke-width="3"/>
+          <circle cx="150" cy="65" r="14" fill="none" stroke="#6b6b83" stroke-width="3"/>
+        </svg>
+        <div class="row-wrap" id="opts"></div>`;
+      const opts = area.querySelector("#opts");
+      [3,4,5,6].forEach(n => {
+        const b = document.createElement("button");
+        b.className = "opt-btn";
+        b.style.textAlign = "center";
+        b.textContent = n;
+        b.onclick = () => done(n === 5);
+        opts.appendChild(b);
+      });
+    }
+  },
+  // 4 — riddle text
+  {
+    hint: "You play music on it.",
+    render(area, done){
+      area.innerHTML = `
+        <div class="question">What has keys but can't open locks?</div>
+        <div style="display:flex; gap:8px; justify-content:center;">
+          <input type="text" id="ans" placeholder="Type your answer">
+          <button class="primary-btn" id="go">Go</button>
+        </div>`;
+      const check = () => {
+        const val = area.querySelector("#ans").value.trim().toLowerCase();
+        done(val === "piano" || val === "a piano");
+      };
+      area.querySelector("#go").onclick = check;
+      area.querySelector("#ans").addEventListener("keydown", e => { if (e.key === "Enter") check(); });
+    }
+  },
+  // 5 — tap the sun, not the switch (decoy)
+  {
+    hint: "The light switch is a decoy. Find the real light source.",
+    render(area, done){
+      area.innerHTML = `
+        <div class="question">Turn on the light</div>
+        <div class="scene">
+          <span id="sun">☀️</span>
+          <span id="switch">🔌</span>
+        </div>`;
+      area.querySelector("#sun").onclick = () => done(true);
+      area.querySelector("#switch").onclick = () => done(false);
+    }
+  },
+  // 6 — the troll "free" level
+  {
+    hint: "There's nothing to solve here. Just move on.",
+    render(area, done){
+      area.innerHTML = `
+        <div class="question">This one's a freebie.</div>
+        <div class="subtext">No tricks. Just tap Next Level.</div>
+        <div style="text-align:center;">
+          <button class="primary-btn" id="next">Next Level →</button>
+        </div>`;
+      area.querySelector("#next").onclick = () => done(true);
+    }
+  },
+  // 7 — odd one out
+  {
+    hint: "One of them is facing the wrong way.",
+    render(area, done){
+      area.innerHTML = `
+        <div class="question">Tap the odd one out</div>
+        <div class="row-wrap" id="grid"></div>`;
+      const grid = area.querySelector("#grid");
+      const oddIndex = 4;
+      for (let i = 0; i < 6; i++){
+        const chip = document.createElement("div");
+        chip.className = "chip" + (i === oddIndex ? " rot" : "");
+        chip.textContent = "🙂";
+        chip.onclick = () => done(i === oddIndex);
+        grid.appendChild(chip);
+      }
+    }
+  },
+  // 8 — biggest number, ignore font size
+  {
+    hint: "Font size is a trick. Compare the actual numbers.",
+    render(area, done){
+      area.innerHTML = `
+        <div class="question">Tap the largest number</div>
+        <div class="row-wrap" id="nums" style="align-items:center;"></div>`;
+      const nums = area.querySelector("#nums");
+      const data = [
+        { v: 7, size: 52 },
+        { v: 82, size: 16 },
+        { v: 45, size: 34 }
+      ];
+      data.forEach(d => {
+        const b = document.createElement("button");
+        b.className = "opt-btn";
+        b.style.fontSize = d.size + "px";
+        b.style.textAlign = "center";
+        b.textContent = d.v;
+        b.onclick = () => done(d.v === 82);
+        nums.appendChild(b);
+      });
+    }
+  },
+  // 9 — spell backwards
+  {
+    hint: "Write the letters of 'correct' in reverse order.",
+    render(area, done){
+      area.innerHTML = `
+        <div class="question">Type the word "correct" spelled backwards</div>
+        <div style="display:flex; gap:8px; justify-content:center;">
+          <input type="text" id="ans" placeholder="Type your answer">
+          <button class="primary-btn" id="go">Go</button>
+        </div>`;
+      const check = () => {
+        const val = area.querySelector("#ans").value.trim().toLowerCase();
+        done(val === "tcerroc");
+      };
+      area.querySelector("#go").onclick = check;
+      area.querySelector("#ans").addEventListener("keydown", e => { if (e.key === "Enter") check(); });
+    }
+  },
+  // 10 — turn off all the lights
+  {
+    hint: "Every bulb needs to end up off.",
+    render(area, done){
+      area.innerHTML = `
+        <div class="question">Help him sleep. Turn off all the lights.</div>
+        <div class="bulbs" id="bulbs"></div>`;
+      const bulbs = area.querySelector("#bulbs");
+      const state = [true, true, false, true];
+      state.forEach((on, i) => {
+        const b = document.createElement("div");
+        b.className = "bulb";
+        b.textContent = on ? "💡" : "⚫";
+        b.onclick = () => {
+          state[i] = !state[i];
+          b.textContent = state[i] ? "💡" : "⚫";
+          if (state.every(s => !s)) setTimeout(() => done(true), 150);
+        };
+        bulbs.appendChild(b);
+      });
+    }
+  }
+];
+
+let current = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+if (isNaN(current) || current < 0 || current >= levels.length) current = 0;
+
+const puzzleArea = document.getElementById("puzzleArea");
+const levelIndicator = document.getElementById("levelIndicator");
+const hintBox = document.getElementById("hintBox");
+const feedback = document.getElementById("feedback");
+const card = document.getElementById("card");
+
+function saveProgress(){
+  localStorage.setItem(STORAGE_KEY, String(current));
+}
+
+function showFeedback(correct){
+  feedback.textContent = correct ? "✓ Correct!" : "✗ Try again";
+  feedback.className = "show " + (correct ? "good" : "bad");
+  if (!correct){
+    card.classList.add("shake");
+    setTimeout(() => card.classList.remove("shake"), 400);
+    setTimeout(() => { feedback.className = ""; }, 700);
+  } else {
+    setTimeout(() => {
+      feedback.className = "";
+      current++;
+      saveProgress();
+      renderCurrent();
+    }, 700);
+  }
+}
+
+function renderDone(){
+  levelIndicator.textContent = "Finished!";
+  hintBox.textContent = "";
+  puzzleArea.innerHTML = `
+    <div class="done-emoji">🎉</div>
+    <div class="question">You finished Brain Twist!</div>
+    <div class="subtext">Tap "Restart game" below to play again.</div>`;
+}
+
+function renderCurrent(){
+  if (current >= levels.length){
+    renderDone();
+    return;
+  }
+  levelIndicator.textContent = `Level ${current + 1} / ${levels.length}`;
+  hintBox.textContent = "";
+  const level = levels[current];
+  level.render(puzzleArea, showFeedback);
+}
+
+document.getElementById("hintBtn").onclick = () => {
+  if (current >= levels.length) return;
+  hintBox.textContent = "💡 " + levels[current].hint;
+};
+
+document.getElementById("resetBtn").onclick = () => {
+  current = 0;
+  saveProgress();
+  renderCurrent();
+};
+
+renderCurrent();
+</script>
+
+</body>
+</html>
